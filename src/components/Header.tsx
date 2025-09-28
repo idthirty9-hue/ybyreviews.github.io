@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Film, Menu, X, Star, TrendingUp, Clock } from 'lucide-react';
+import { Search, Film, Menu, X, Star, TrendingUp, Clock, Play, Tv } from 'lucide-react';
 
 interface HeaderProps {
   onSearch: (query: string) => void;
@@ -31,6 +31,9 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, onNavigate, currentSec
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Film },
+    { id: 'movies', label: 'Movies', icon: Film },
+    { id: 'series', label: 'Series', icon: Tv },
+    { id: 'anime', label: 'Anime', icon: Play },
     { id: 'trending', label: 'Trending', icon: TrendingUp },
     { id: 'top-rated', label: 'Top Rated', icon: Star },
     { id: 'coming-soon', label: 'Coming Soon', icon: Clock },

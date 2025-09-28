@@ -24,14 +24,21 @@ export const AdSidebar: React.FC = () => {
         />
       </div>
 
-      {/* Promotional Content */}
-      <div className="bg-gradient-to-br from-red-500 to-pink-600 rounded-lg p-6 text-white">
-        <h3 className="font-bold text-lg mb-2">Premium Reviews</h3>
+      {/* Contact Us Promotional Content */}
+      <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg p-6 text-white">
+        <h3 className="font-bold text-lg mb-2">Contact Us</h3>
         <p className="text-sm mb-4 opacity-90">
-          Get access to exclusive movie reviews and early access to ratings.
+          Have suggestions or feedback? We'd love to hear from you!
         </p>
-        <button className="bg-white text-red-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
-          Learn More
+        <button 
+          onClick={() => {
+            // This will be handled by the parent component
+            const event = new CustomEvent('openContactForm');
+            window.dispatchEvent(event);
+          }}
+          className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-all duration-200 hover:scale-105"
+        >
+          Get in Touch
         </button>
       </div>
     </div>
