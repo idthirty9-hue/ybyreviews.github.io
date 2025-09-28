@@ -93,19 +93,19 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, onNavigate, currentSec
           <div className="hidden sm:flex items-center">
             <button
               onClick={onAuthClick}
-              className="flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105"
+              className="flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 group"
             >
               {user?.user_metadata?.avatar_url ? (
                 <img
                   src={user.user_metadata.avatar_url}
                   alt="Profile"
-                  className="w-6 h-6 rounded-full object-cover"
+                  className="w-6 h-6 rounded-full object-cover border-2 border-transparent group-hover:border-red-400 transition-colors"
                 />
               ) : (
                 <User className="w-4 h-4" />
               )}
               <span className="text-sm">
-                {user ? user.user_metadata?.full_name || 'Profile' : 'Sign In'}
+                {user ? user.user_metadata?.full_name || user.user_metadata?.name || 'Profile' : 'Sign In'}
               </span>
             </button>
           </div>

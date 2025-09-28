@@ -611,9 +611,18 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
                         <div>
                           <h5 className="font-semibold text-gray-900 text-lg">{review.title}</h5>
                           <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
-                            <span className="font-medium">
-                              {review.user_name || 'Anonymous User'}
-                            </span>
+                            <div className="flex items-center space-x-2">
+                              {review.user_avatar && (
+                                <img
+                                  src={review.user_avatar}
+                                  alt="User avatar"
+                                  className="w-6 h-6 rounded-full object-cover"
+                                />
+                              )}
+                              <span className="font-medium">
+                                {review.user_name || 'Anonymous User'}
+                              </span>
+                            </div>
                             <span>•</span>
                             <div className="flex items-center space-x-1">
                               <Star className="w-4 h-4 text-yellow-400 fill-current" />

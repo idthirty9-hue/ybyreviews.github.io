@@ -5,7 +5,14 @@ export const reviewService = {
   async getReviewsForMovie(movieId: number): Promise<Review[]> {
     const { data, error } = await supabase
       .from('reviews')
-      .select('*')
+      .select(`
+        *,
+        profiles (
+          full_name,
+          username,
+          avatar_url
+        )
+      `)
       .eq('movie_id', movieId)
       .order('created_at', { ascending: false });
 
@@ -14,22 +21,46 @@ export const reviewService = {
       return [];
     }
 
-    // Fetch user details for each review
-    const reviewsWithUserData = await Promise.all(
-      (data || []).map(async (review) => {
-        const { data: userData } = await supabase.auth.admin.getUserById(review.user_id);
-        return {
-          ...review,
-          user_name: userData?.user?.user_metadata?.full_name || 
-                    userData?.user?.user_metadata?.name || 
-                    userData?.user?.email?.split('@')[0] || 
-                    'Anonymous User',
-          user_avatar: userData?.user?.user_metadata?.avatar_url || null
-        };
-      })
-    );
+    // Transform the data to include user information
+    return (data || []).map(review => ({
+      ...review,
+      user_name: review.profiles?.full_name || review.profiles?.username || 'Anonymous User',
+      user_avatar: review.profiles?.avatar_url || null
+    }));
+  },
 
-    return reviewsWithUserData;
+  async getUserReviews(userId?: string): Promise<Review[]> {
+    let targetUserId = userId;
+    
+    if (!targetUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      targetUserId = user.id;
+    }
+
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(`
+        *,
+        profiles (
+          full_name,
+          username,
+          avatar_url
+        )
+      `)
+      .eq('user_id', targetUserId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching user reviews:', error);
+      return [];
+    }
+
+    return (data || []).map(review => ({
+      ...review,
+      user_name: review.profiles?.full_name || review.profiles?.username || 'Anonymous User',
+      user_avatar: review.profiles?.avatar_url || null
+    }));
   },
 
   async createReview(movieId: number, movieTitle: string, reviewData: ReviewFormData): Promise<Review | null> {
@@ -47,7 +78,14 @@ export const reviewService = {
         movie_title: movieTitle,
         ...reviewData
       })
-      .select()
+      .select(`
+        *,
+        profiles (
+          full_name,
+          username,
+          avatar_url
+        )
+      `)
       .single();
 
     if (error) {
@@ -55,14 +93,10 @@ export const reviewService = {
       throw error;
     }
 
-    // Add user data to the returned review
     return {
       ...data,
-      user_name: user.user_metadata?.full_name || 
-                user.user_metadata?.name || 
-                user.email?.split('@')[0] || 
-                'Anonymous User',
-      user_avatar: user.user_metadata?.avatar_url || null
+      user_name: data.profiles?.full_name || data.profiles?.username || 'Anonymous User',
+      user_avatar: data.profiles?.avatar_url || null
     };
   },
 
@@ -80,8 +114,15 @@ export const reviewService = {
         updated_at: new Date().toISOString()
       })
       .eq('id', reviewId)
-      .eq('user_id', user.id) // Ensure user can only update their own review
-      .select()
+      .eq('user_id', user.id)
+      .select(`
+        *,
+        profiles (
+          full_name,
+          username,
+          avatar_url
+        )
+      `)
       .single();
 
     if (error) {
@@ -89,14 +130,10 @@ export const reviewService = {
       throw error;
     }
 
-    // Add user data to the returned review
     return {
       ...data,
-      user_name: user.user_metadata?.full_name || 
-                user.user_metadata?.name || 
-                user.email?.split('@')[0] || 
-                'Anonymous User',
-      user_avatar: user.user_metadata?.avatar_url || null
+      user_name: data.profiles?.full_name || data.profiles?.username || 'Anonymous User',
+      user_avatar: data.profiles?.avatar_url || null
     };
   },
 
@@ -111,7 +148,7 @@ export const reviewService = {
       .from('reviews')
       .delete()
       .eq('id', reviewId)
-      .eq('user_id', user.id); // Ensure user can only delete their own review
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('Error deleting review:', error);
@@ -128,7 +165,14 @@ export const reviewService = {
 
     const { data, error } = await supabase
       .from('reviews')
-      .select('*')
+      .select(`
+        *,
+        profiles (
+          full_name,
+          username,
+          avatar_url
+        )
+      `)
       .eq('movie_id', movieId)
       .eq('user_id', user.id)
       .single();
@@ -138,6 +182,12 @@ export const reviewService = {
       return null;
     }
 
-    return data || null;
+    if (!data) return null;
+
+    return {
+      ...data,
+      user_name: data.profiles?.full_name || data.profiles?.username || 'Anonymous User',
+      user_avatar: data.profiles?.avatar_url || null
+    };
   }
 };
