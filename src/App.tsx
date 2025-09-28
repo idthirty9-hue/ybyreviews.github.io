@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from './lib/supabase';
+import type { User } from '@supabase/supabase-js';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { MovieGrid } from './components/MovieGrid';
 import { MovieModal } from './components/MovieModal';
+import { AuthModal } from './components/AuthModal';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { AdBanner } from './components/AdBanner';
 import { AdSidebar } from './components/AdSidebar';
@@ -11,6 +14,8 @@ import { movieService } from './services/movieService';
 import { Movie } from './types/movie';
 
 function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState('home');
   const [movies, setMovies] = useState<Movie[]>([]);
   const [featuredMovie, setFeaturedMovie] = useState<Movie | null>(null);
@@ -21,6 +26,18 @@ function App() {
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
 
   useEffect(() => {
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
     loadMovies();
     
     // Listen for contact form events
@@ -28,6 +45,7 @@ function App() {
     window.addEventListener('openContactForm', handleOpenContactForm);
     
     return () => {
+      subscription.unsubscribe();
       window.removeEventListener('openContactForm', handleOpenContactForm);
     };
   }, []);
@@ -167,6 +185,8 @@ function App() {
         onSearch={handleSearch}
         onNavigate={handleNavigate}
         currentSection={currentSection}
+        user={user}
+        onAuthClick={() => setIsAuthModalOpen(true)}
       />
 
       {/* Hero Section */}
@@ -250,6 +270,16 @@ function App() {
         movie={selectedMovie}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+        user={user}
+        onAuthRequired={() => setIsAuthModalOpen(true)}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        user={user}
+        onAuthChange={setUser}
       />
 
       {/* Contact Form Modal */}

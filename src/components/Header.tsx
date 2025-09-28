@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { Search, Film, Menu, X, Star, TrendingUp, Clock, Play, Tv } from 'lucide-react';
+import { Search, Film, Menu, X, Star, TrendingUp, Clock, Play, Tv, User } from 'lucide-react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface HeaderProps {
   onSearch: (query: string) => void;
   onNavigate: (section: string) => void;
   currentSection: string;
+  user: SupabaseUser | null;
+  onAuthClick: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onSearch, onNavigate, currentSection }) => {
+export const Header: React.FC<HeaderProps> = ({ onSearch, onNavigate, currentSection, user, onAuthClick }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -86,6 +89,27 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, onNavigate, currentSec
             </form>
           </div>
 
+          {/* User Profile */}
+          <div className="hidden sm:flex items-center">
+            <button
+              onClick={onAuthClick}
+              className="flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105"
+            >
+              {user?.user_metadata?.avatar_url ? (
+                <img
+                  src={user.user_metadata.avatar_url}
+                  alt="Profile"
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <User className="w-4 h-4" />
+              )}
+              <span className="text-sm">
+                {user ? user.user_metadata?.full_name || 'Profile' : 'Sign In'}
+              </span>
+            </button>
+          </div>
+
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -129,6 +153,30 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, onNavigate, currentSec
                   />
                   <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                 </form>
+              </div>
+
+              {/* Mobile User Profile */}
+              <div className="pt-2">
+                <button
+                  onClick={() => {
+                    onAuthClick();
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center space-x-2 w-full bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors"
+                >
+                  {user?.user_metadata?.avatar_url ? (
+                    <img
+                      src={user.user_metadata.avatar_url}
+                      alt="Profile"
+                      className="w-5 h-5 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
+                  <span className="text-sm">
+                    {user ? user.user_metadata?.full_name || 'Profile' : 'Sign In'}
+                  </span>
+                </button>
               </div>
             </div>
           </div>
