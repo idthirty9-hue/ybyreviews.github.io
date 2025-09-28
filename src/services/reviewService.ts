@@ -5,11 +5,7 @@ export const reviewService = {
   async getReviewsForMovie(movieId: number): Promise<Review[]> {
     const { data, error } = await supabase
       .from('reviews')
-      .select(`
-        *,
-        user_name:user_id(raw_user_meta_data->name),
-        user_avatar:user_id(raw_user_meta_data->avatar_url)
-      `)
+      .select('*')
       .eq('movie_id', movieId)
       .order('created_at', { ascending: false });
 
@@ -18,7 +14,22 @@ export const reviewService = {
       return [];
     }
 
-    return data || [];
+    // Fetch user details for each review
+    const reviewsWithUserData = await Promise.all(
+      (data || []).map(async (review) => {
+        const { data: userData } = await supabase.auth.admin.getUserById(review.user_id);
+        return {
+          ...review,
+          user_name: userData?.user?.user_metadata?.full_name || 
+                    userData?.user?.user_metadata?.name || 
+                    userData?.user?.email?.split('@')[0] || 
+                    'Anonymous User',
+          user_avatar: userData?.user?.user_metadata?.avatar_url || null
+        };
+      })
+    );
+
+    return reviewsWithUserData;
   },
 
   async createReview(movieId: number, movieTitle: string, reviewData: ReviewFormData): Promise<Review | null> {
@@ -44,10 +55,24 @@ export const reviewService = {
       throw error;
     }
 
-    return data;
+    // Add user data to the returned review
+    return {
+      ...data,
+      user_name: user.user_metadata?.full_name || 
+                user.user_metadata?.name || 
+                user.email?.split('@')[0] || 
+                'Anonymous User',
+      user_avatar: user.user_metadata?.avatar_url || null
+    };
   },
 
   async updateReview(reviewId: string, reviewData: Partial<ReviewFormData>): Promise<Review | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User must be authenticated to update a review');
+    }
+
     const { data, error } = await supabase
       .from('reviews')
       .update({
@@ -55,6 +80,7 @@ export const reviewService = {
         updated_at: new Date().toISOString()
       })
       .eq('id', reviewId)
+      .eq('user_id', user.id) // Ensure user can only update their own review
       .select()
       .single();
 
@@ -63,14 +89,29 @@ export const reviewService = {
       throw error;
     }
 
-    return data;
+    // Add user data to the returned review
+    return {
+      ...data,
+      user_name: user.user_metadata?.full_name || 
+                user.user_metadata?.name || 
+                user.email?.split('@')[0] || 
+                'Anonymous User',
+      user_avatar: user.user_metadata?.avatar_url || null
+    };
   },
 
   async deleteReview(reviewId: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User must be authenticated to delete a review');
+    }
+
     const { error } = await supabase
       .from('reviews')
       .delete()
-      .eq('id', reviewId);
+      .eq('id', reviewId)
+      .eq('user_id', user.id); // Ensure user can only delete their own review
 
     if (error) {
       console.error('Error deleting review:', error);

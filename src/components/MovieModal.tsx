@@ -42,6 +42,18 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
     if (isOpen && movie && user) {
       loadUserReview();
     }
+    // Clear user review when user logs out
+    if (!user) {
+      setUserReview(null);
+      setNewReview({
+        rating: 5,
+        title: '',
+        content: '',
+        pros: [''],
+        cons: [''],
+        recommendation: 'recommend' as const
+      });
+    }
   }, [isOpen, movie, user]);
 
   const loadReviews = async () => {
@@ -167,31 +179,42 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
       return;
     }
 
+    // Validate pros and cons have at least one non-empty entry
+    const validPros = newReview.pros.filter(pro => pro.trim() !== '');
+    const validCons = newReview.cons.filter(con => con.trim() !== '');
+    
+    if (validPros.length === 0) {
+      alert('Please add at least one positive aspect');
+      return;
+    }
+
     setSubmittingReview(true);
     try {
       // Filter out empty pros and cons
       const cleanedReview = {
         ...newReview,
-        pros: newReview.pros.filter(pro => pro.trim() !== ''),
-        cons: newReview.cons.filter(con => con.trim() !== '')
+        pros: validPros,
+        cons: validCons
       };
 
       if (userReview) {
         // Update existing review
         await reviewService.updateReview(userReview.id, cleanedReview);
+        alert('Review updated successfully!');
       } else {
         // Create new review
         await reviewService.createReview(movie.id, movie.title, cleanedReview);
+        alert('Review submitted successfully!');
       }
 
       // Reload reviews and user review
       await Promise.all([loadReviews(), loadUserReview()]);
       
       setShowReviewForm(false);
-      alert(userReview ? 'Review updated successfully!' : 'Review submitted successfully!');
     } catch (error) {
       console.error('Error submitting review:', error);
-      alert('Failed to submit review. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to submit review: ${errorMessage}`);
     } finally {
       setSubmittingReview(false);
     }
@@ -202,6 +225,7 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
 
     if (!confirm('Are you sure you want to delete your review?')) return;
 
+    setSubmittingReview(true);
     try {
       await reviewService.deleteReview(userReview.id);
       await Promise.all([loadReviews(), loadUserReview()]);
@@ -209,7 +233,10 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
       alert('Review deleted successfully!');
     } catch (error) {
       console.error('Error deleting review:', error);
-      alert('Failed to delete review. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to delete review: ${errorMessage}`);
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -390,9 +417,10 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
                         {userReview && !showReviewForm && (
                           <button
                             onClick={handleDeleteReview}
-                            className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105"
+                            disabled={submittingReview}
+                            className="bg-red-100 hover:bg-red-200 disabled:bg-red-50 text-red-700 disabled:text-red-400 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 disabled:hover:scale-100"
                           >
-                            Delete My Review
+                            {submittingReview ? 'Deleting...' : 'Delete My Review'}
                           </button>
                         )}
                         <button
@@ -481,9 +509,11 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
                                 onChange={(e) => updateProCon('pros', index, e.target.value)}
                                 className="flex-1 border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                                 placeholder="What did you like?"
+                                required={index === 0}
                               />
                               {newReview.pros.length > 1 && (
                                 <button
+                                  type="button"
                                   onClick={() => removeProCon('pros', index)}
                                   className="text-red-500 hover:text-red-700 px-2"
                                 >
@@ -493,6 +523,7 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
                             </div>
                           ))}
                           <button
+                            type="button"
                             onClick={() => addProCon('pros')}
                             className="text-green-600 hover:text-green-700 text-sm font-medium"
                           >
@@ -513,6 +544,7 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
                               />
                               {newReview.cons.length > 1 && (
                                 <button
+                                  type="button"
                                   onClick={() => removeProCon('cons', index)}
                                   className="text-red-500 hover:text-red-700 px-2"
                                 >
@@ -522,6 +554,7 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
                             </div>
                           ))}
                           <button
+                            type="button"
                             onClick={() => addProCon('cons')}
                             className="text-red-600 hover:text-red-700 text-sm font-medium"
                           >
@@ -532,6 +565,7 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
 
                       <div className="flex gap-3">
                         <button
+                          type="button"
                           onClick={handleSubmitReview}
                           disabled={submittingReview}
                           className="bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 disabled:hover:scale-100 flex items-center space-x-2"
@@ -549,8 +583,10 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, isOpen, onClose, 
                           </span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => setShowReviewForm(false)}
-                          className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-lg font-medium transition-all duration-200"
+                          disabled={submittingReview}
+                          className="bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 disabled:text-gray-500 px-6 py-2 rounded-lg font-medium transition-all duration-200"
                         >
                           Cancel
                         </button>
