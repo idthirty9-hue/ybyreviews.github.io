@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Edit3, Save, Calendar, Star, Film } from 'lucide-react';
+import { X, User, CreditCard as Edit3, Save, Calendar, Star, Film } from 'lucide-react';
 import { profileService } from '../services/profileService';
 import { reviewService } from '../services/reviewService';
 import { Profile, ProfileFormData } from '../types/profile';
